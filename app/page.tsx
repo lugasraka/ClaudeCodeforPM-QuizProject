@@ -291,17 +291,7 @@ export default function Home() {
     const shareText = `☕ I took the Coffee Personality Quiz and got "${data.name}" - ${data.tagline}\n\n${data.coffee}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
     
     if (!resultsRef.current) {
-      if (navigator.share) {
-        navigator.share({
-          title: "My Coffee Personality",
-          text: shareText,
-          url: "https://quiz-project-jade.vercel.app",
-        });
-      } else {
-        navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      fallbackShare();
       return;
     }
 
@@ -309,56 +299,86 @@ export default function Home() {
 
     try {
       const canvas = await html2canvas(resultsRef.current, {
+        backgroundColor: "#fdf6ec",
+        scale: 2,
+        useCORS: true,
         logging: false,
+        allowTaint: true,
+        removeContainer: true,
       });
 
-      canvas.toBlob(async (blob) => {
-        if (!blob) {
-          setIsCapturing(false);
-          return;
-        }
+      const dataUrl = canvas.toDataURL("image/png");
+      
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+      
+      if (!blob) {
+        setIsCapturing(false);
+        fallbackShare();
+        return;
+      }
 
-        const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
+      const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
 
-        if (navigator.share && navigator.canShare({ files: [file] })) {
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
           await navigator.share({
             title: "My Coffee Personality",
             text: shareText,
             files: [file],
           });
-        } else if (navigator.share) {
+        } catch (shareError) {
+          console.log("Share with image failed, trying without image:", shareError);
           await navigator.share({
             title: "My Coffee Personality",
             text: shareText,
             url: "https://quiz-project-jade.vercel.app",
           });
         }
+      } else if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            url: "https://quiz-project-jade.vercel.app",
+          });
+        } catch (shareError) {
+          console.log("Share failed:", shareError);
+        }
+      }
 
-        const imageUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = imageUrl;
-        link.download = "my-coffee-personality.png";
-        link.click();
-        URL.revokeObjectURL(imageUrl);
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "my-coffee-personality.png";
+      link.click();
 
-        setIsCapturing(false);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }, "image/png");
+      setIsCapturing(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
     } catch (error) {
       console.error("Error capturing screenshot:", error);
       setIsCapturing(false);
-      if (navigator.share) {
-        navigator.share({
-          title: "My Coffee Personality",
-          text: shareText,
-          url: "https://quiz-project-jade.vercel.app",
-        });
-      } else {
-        navigator.clipboard.writeText(shareText);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
+      fallbackShare();
+    }
+  };
+
+  const fallbackShare = () => {
+    const results = calculateResults();
+    const topResult = results[0];
+    const data = personalityData[topResult.personality];
+    
+    const shareText = `☕ I took the Coffee Personality Quiz and got "${data.name}" - ${data.tagline}\n\n${data.coffee}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: "My Coffee Personality",
+        text: shareText,
+        url: "https://quiz-project-jade.vercel.app",
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 3000);
     }
   };
 
