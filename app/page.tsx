@@ -302,7 +302,7 @@ export default function Home() {
         scale: 2,
         useCORS: true,
         logging: false,
-      });
+      } as any);
 
       const dataUrl = canvas.toDataURL("image/png");
       
