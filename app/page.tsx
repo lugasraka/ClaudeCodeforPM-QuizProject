@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 
-// Confetti component
 function Confetti() {
   const [pieces, setPieces] = useState<Array<{ id: number; left: number; delay: number; duration: number; color: string }>>([]);
 
@@ -145,47 +144,116 @@ const personalityData = {
     name: "Cozy Classic",
     coffee: "Medium Roast Drip",
     tagline: "Comfort in every cup",
+    description: "You appreciate the simple pleasures in life. Your coffee choice reflects your love for warmth, reliability, and timeless comfort.",
     image: "/cozy-classic.jpg",
   },
   sweetEnthusiast: {
     name: "Sweet Enthusiast",
     coffee: "Caramel Latte",
     tagline: "Life's too short for bitter",
+    description: "You bring joy wherever you go! Your sweet tooth matches your optimistic outlook on life - why choose bitter when you can have bliss?",
     image: "/sweet-enthusiast.jpg",
   },
   healthNut: {
     name: "Health Nut",
     coffee: "Oat Milk Americano",
     tagline: "Wellness in every sip",
+    description: "Mindful and intentional, you make choices that fuel your body and mind. Your coffee reflects your commitment to balanced living.",
     image: "/health-nut.jpg",
   },
   indulgentTreat: {
     name: "Indulgent Treat",
     coffee: "Mocha with Whip",
     tagline: "Coffee is dessert",
+    description: "You believe life is meant to be savored. Why settle for ordinary when you can have extraordinary? Your coffee choices are pure luxury.",
     image: "/indulgent-treat.jpg",
   },
 };
+
+function PersonalityPreview({ selections }: { selections: Personality[] }) {
+  const counts: Record<Personality, number> = {
+    cozyClassic: 0,
+    sweetEnthusiast: 0,
+    healthNut: 0,
+    indulgentTreat: 0,
+  };
+
+  selections.forEach((p) => {
+    counts[p]++;
+  });
+
+  const total = selections.length || 1;
+
+  const personalityOrder: Personality[] = ["cozyClassic", "sweetEnthusiast", "healthNut", "indulgentTreat"];
+
+  return (
+    <div className="mb-6 p-4 bg-[#fdf6ec] rounded-xl border border-[#d4a574]/30">
+      <p className="text-sm text-[#8b6239] font-medium mb-3">Your personality preview</p>
+      <div className="grid grid-cols-2 gap-2">
+        {personalityOrder.map((personality) => {
+          const percentage = Math.round((counts[personality] / total) * 100);
+          return (
+            <div key={personality} className="flex items-center gap-2">
+              <div className="flex-grow bg-[#d4a574]/20 rounded-full h-2">
+                <div
+                  className="bg-[#d4a574] h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${percentage}%` }}
+                />
+              </div>
+              <span className="text-xs text-[#8b6239] w-8 text-right">{percentage}%</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
   const [started, setStarted] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selections, setSelections] = useState<Personality[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleStart = () => {
     setStarted(true);
   };
 
-  const handleAnswer = (personality: Personality) => {
-    const newSelections = [...selections, personality];
-    setSelections(newSelections);
+  const handleAnswer = useCallback((personality: Personality, answerIndex?: number) => {
+    setSelectedAnswer(answerIndex ?? null);
+    setIsTransitioning(true);
 
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      setShowResults(true);
+    setTimeout(() => {
+      const newSelections = [...selections, personality];
+      setSelections(newSelections);
+
+      if (currentQuestion < questions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        setShowResults(true);
+      }
+      setIsTransitioning(false);
+      setSelectedAnswer(null);
+    }, 400);
+  }, [currentQuestion, selections]);
+
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      const newSelections = [...selections];
+      newSelections.pop();
+      setSelections(newSelections);
+      setCurrentQuestion(currentQuestion - 1);
     }
+  };
+
+  const handleRestart = () => {
+    setStarted(false);
+    setCurrentQuestion(0);
+    setSelections([]);
+    setShowResults(false);
   };
 
   const calculateResults = () => {
@@ -212,14 +280,55 @@ export default function Home() {
     return percentages;
   };
 
-  const restartQuiz = () => {
-    setStarted(false);
-    setCurrentQuestion(0);
-    setSelections([]);
-    setShowResults(false);
+  const shareResults = () => {
+    const results = calculateResults();
+    const topResult = results[0];
+    const data = personalityData[topResult.personality];
+    
+    const shareText = `☕ I took the Coffee Personality Quiz and got "${data.name}" - ${data.tagline}\n\n${data.coffee}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
+    
+    if (navigator.share) {
+      navigator.share({
+        title: "My Coffee Personality",
+        text: shareText,
+        url: "https://quiz-project-jade.vercel.app",
+      });
+    } else {
+      navigator.clipboard.writeText(shareText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
-  // Landing Page
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showResults || !started || isTransitioning) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const question = questions[currentQuestion];
+        const answers = question.answers;
+        const currentIdx = selectedAnswer ?? -1;
+        const nextIdx = currentIdx < answers.length - 1 ? currentIdx + 1 : 0;
+        setSelectedAnswer(nextIdx);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const question = questions[currentQuestion];
+        const answers = question.answers;
+        const currentIdx = selectedAnswer ?? answers.length;
+        const prevIdx = currentIdx > 0 ? currentIdx - 1 : answers.length - 1;
+        setSelectedAnswer(prevIdx);
+      } else if (e.key === "Enter" && selectedAnswer !== null) {
+        e.preventDefault();
+        const question = questions[currentQuestion];
+        handleAnswer(question.answers[selectedAnswer].personality, selectedAnswer);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentQuestion, selectedAnswer, showResults, started, isTransitioning, handleAnswer]);
+
   if (!started) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] flex items-center justify-center p-4">
@@ -241,7 +350,6 @@ export default function Home() {
     );
   }
 
-  // Results Page
   if (showResults) {
     const results = calculateResults();
     const topResult = results[0];
@@ -257,7 +365,6 @@ export default function Home() {
             Here&apos;s your complete breakdown!
           </p>
 
-          {/* Top Result Highlight */}
           <div className="bg-gradient-to-r from-[#d4a574] to-[#c49566] rounded-2xl p-6 mb-6 text-white text-center">
             <p className="text-sm uppercase tracking-wide mb-1">You&apos;re mostly a...</p>
             <h2 className="text-2xl font-bold mb-1">
@@ -269,9 +376,11 @@ export default function Home() {
             <p className="mt-3 text-xl font-semibold">
               ☕ {personalityData[topResult.personality].coffee}
             </p>
+            <p className="mt-3 text-sm opacity-90">
+              {personalityData[topResult.personality].description}
+            </p>
           </div>
 
-          {/* All Results with Percentages */}
           <div className="space-y-4">
             {results.map((result) => {
               const data = personalityData[result.personality];
@@ -294,7 +403,6 @@ export default function Home() {
                       <span className="text-[#6b4423] font-bold">{result.percentage}%</span>
                     </div>
                     <p className="text-sm text-[#8b6239]">{data.coffee}</p>
-                    {/* Progress Bar */}
                     <div className="w-full bg-[#d4a574]/30 rounded-full h-2 mt-2">
                       <div
                         className="bg-[#d4a574] h-2 rounded-full transition-all duration-500"
@@ -308,13 +416,19 @@ export default function Home() {
           </div>
 
           <button
-            onClick={restartQuiz}
-            className="w-full mt-6 bg-gradient-to-r from-[#d4a574] to-[#c49566] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform"
+            onClick={shareResults}
+            className="w-full mt-6 bg-[#6b4423] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+          >
+            {copied ? "✓ Copied to Clipboard!" : "📤 Share Your Results"}
+          </button>
+
+          <button
+            onClick={handleRestart}
+            className="w-full mt-4 bg-gradient-to-r from-[#d4a574] to-[#c49566] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform"
           >
             Take Quiz Again
           </button>
 
-          {/* Creator Credit */}
           <p className="text-center text-[#8b6239] text-sm mt-6">
             Created by Raka Adrianto. Have feedback, questions, or want to say hi?{" "}
             <a
@@ -340,13 +454,11 @@ export default function Home() {
     );
   }
 
-  // Quiz Questions
   const question = questions[currentQuestion];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] flex items-center justify-center p-4">
       <div className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-8 max-w-xl w-full shadow-2xl">
-        {/* Progress */}
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
             <span className="text-[#8b6239] font-medium">
@@ -356,7 +468,6 @@ export default function Home() {
               {Math.round(((currentQuestion + 1) / questions.length) * 100)}%
             </span>
           </div>
-          {/* Progress Bar */}
           <div className="w-full bg-[#d4a574]/30 rounded-full h-3">
             <div
               className="bg-gradient-to-r from-[#d4a574] to-[#c49566] h-3 rounded-full transition-all duration-300"
@@ -365,33 +476,49 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Question Image */}
-        <div className="w-full h-40 rounded-xl overflow-hidden mb-4 relative">
-          <Image
-            src={question.image}
-            alt={question.question}
-            fill
-            className="object-cover"
-          />
-        </div>
+        <PersonalityPreview selections={selections} />
 
-        {/* Question */}
-        <h2 className="text-2xl font-bold text-[#6b4423] mb-6">
-          {question.question}
-        </h2>
+        {currentQuestion > 0 && (
+          <button
+            onClick={handleBack}
+            className="mb-4 text-[#8b6239] hover:text-[#6b4423] font-medium flex items-center gap-1 transition-colors"
+          >
+            ← Back
+          </button>
+        )}
 
-        {/* Answers */}
-        <div className="space-y-3">
-          {question.answers.map((answer, idx) => (
-            <button
-              key={idx}
-              onClick={() => handleAnswer(answer.personality)}
-              className="w-full bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] text-[#5a3d2b] p-4 rounded-xl text-left hover:from-[#d4a574] hover:to-[#c49566] hover:text-white transition-all hover:scale-[1.02] border-2 border-[#d4a574] font-medium"
-            >
-              <span className="mr-3 text-xl">{answer.icon}</span>
-              {answer.text}
-            </button>
-          ))}
+        <div className={`transition-opacity duration-300 ${isTransitioning ? "opacity-50" : "opacity-100"}`}>
+          <div className="w-full h-40 rounded-xl overflow-hidden mb-4 relative">
+            <Image
+              src={question.image}
+              alt={question.question}
+              fill
+              className="object-cover"
+            />
+          </div>
+
+          <h2 className="text-2xl font-bold text-[#6b4423] mb-6">
+            {question.question}
+          </h2>
+
+          <div className="space-y-3">
+            {question.answers.map((answer, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleAnswer(answer.personality, idx)}
+                className={`w-full bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] text-[#5a3d2b] p-4 rounded-xl text-left hover:from-[#d4a574] hover:to-[#c49566] hover:text-white transition-all hover:scale-[1.02] border-2 border-[#d4a574] font-medium ${
+                  selectedAnswer === idx ? "ring-4 ring-[#d4a574]/50 scale-[1.02]" : ""
+                }`}
+              >
+                <span className="mr-3 text-xl">{answer.icon}</span>
+                {answer.text}
+              </button>
+            ))}
+          </div>
+
+          <p className="text-center text-[#8b6239] text-xs mt-4">
+            Use arrow keys to navigate, Enter to select
+          </p>
         </div>
       </div>
     </div>
