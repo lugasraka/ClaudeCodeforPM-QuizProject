@@ -313,6 +313,19 @@ export default function Home() {
           >
             Take Quiz Again
           </button>
+
+          {/* Creator Credit */}
+          <p className="text-center text-[#8b6239] text-sm mt-6">
+            Created by Raka Adrianto. Have feedback, questions, or want to say hi?{" "}
+            <a
+              href="https://www.linkedin.com/in/lugasraka/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6b4423] underline hover:text-[#5a3d2b]"
+            >
+              LinkedIn
+            </a>
+          </p>
         </div>
       </div>
     );
