@@ -4,6 +4,48 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import html2canvas from "html2canvas";
 
+const playSound = (type: "select" | "success" | "complete") => {
+  if (typeof window === "undefined") return;
+  
+  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  if (type === "select") {
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.type = "sine";
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } else if (type === "success") {
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.1);
+    oscillator.type = "sine";
+    gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } else if (type === "complete") {
+    const notes = [523.25, 659.25, 783.99, 1046.5];
+    notes.forEach((freq, i) => {
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.frequency.setValueAtTime(freq, audioContext.currentTime + i * 0.15);
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.1, audioContext.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + i * 0.15 + 0.3);
+      osc.start(audioContext.currentTime + i * 0.15);
+      osc.stop(audioContext.currentTime + i * 0.15 + 0.3);
+    });
+  }
+};
+
 function Confetti() {
   const [pieces, setPieces] = useState<Array<{ id: number; left: number; delay: number; duration: number; color: string }>>([]);
 
@@ -171,7 +213,7 @@ const personalityData = {
   },
 };
 
-function PersonalityPreview({ selections }: { selections: Personality[] }) {
+function PersonalityPreview({ selections, isDark }: { selections: Personality[], isDark: boolean }) {
   const counts: Record<Personality, number> = {
     cozyClassic: 0,
     sweetEnthusiast: 0,
@@ -188,20 +230,20 @@ function PersonalityPreview({ selections }: { selections: Personality[] }) {
   const personalityOrder: Personality[] = ["cozyClassic", "sweetEnthusiast", "healthNut", "indulgentTreat"];
 
   return (
-    <div className="mb-6 p-4 bg-[#fdf6ec] rounded-xl border border-[#d4a574]/30">
-      <p className="text-sm text-[#8b6239] font-medium mb-3">Your personality preview</p>
+    <div className={`mb-6 p-4 rounded-xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-[#fdf6ec] border-[#d4a574]/30"}`}>
+      <p className={`text-sm font-medium mb-3 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>Your personality preview</p>
       <div className="grid grid-cols-2 gap-2">
         {personalityOrder.map((personality) => {
           const percentage = Math.round((counts[personality] / total) * 100);
           return (
             <div key={personality} className="flex items-center gap-2">
-              <div className="flex-grow bg-[#d4a574]/20 rounded-full h-2">
+              <div className={`flex-grow rounded-full h-2 ${isDark ? "bg-gray-700" : "bg-[#d4a574]/20"}`}>
                 <div
                   className="bg-[#d4a574] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${percentage}%` }}
                 />
               </div>
-              <span className="text-xs text-[#8b6239] w-8 text-right">{percentage}%</span>
+              <span className={`text-xs w-8 text-right ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>{percentage}%</span>
             </div>
           );
         })}
@@ -210,8 +252,56 @@ function PersonalityPreview({ selections }: { selections: Personality[] }) {
   );
 }
 
+function IntroScreen({ onComplete }: { onComplete: () => void }) {
+  const [step, setStep] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const timer1 = setTimeout(() => setStep(1), 1500);
+    const timer2 = setTimeout(() => setStep(2), 3000);
+    const timer3 = setTimeout(() => {
+      setIsVisible(false);
+      setTimeout(onComplete, 500);
+    }, 4500);
+
+    return () => {
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+      clearTimeout(timer3);
+    };
+  }, [onComplete]);
+
+  if (!isVisible) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-[#d4a574] to-[#a67c52]">
+      <div className="text-center">
+        {step >= 0 && (
+          <div className={`transition-all duration-500 ${step >= 1 ? "opacity-0 scale-50" : "opacity-100 scale-100"}`}>
+            <div className="text-6xl mb-4 animate-bounce">☕</div>
+            <h1 className="text-4xl font-bold text-white mb-2">Coffee Quiz</h1>
+          </div>
+        )}
+        {step >= 1 && (
+          <div className={`transition-all duration-500 absolute left-1/2 transform -translate-x-1/2 ${step >= 2 ? "opacity-0 scale-50" : "opacity-100 scale-100"}`}>
+            <div className="text-6xl mb-4">🎯</div>
+            <p className="text-xl text-white">Discover your perfect brew</p>
+          </div>
+        )}
+        {step >= 2 && (
+          <div className={`transition-all duration-500 absolute left-1/2 transform -translate-x-1/2 ${step >= 3 ? "opacity-100 scale-100" : "opacity-0 scale-50"}`}>
+            <div className="text-6xl mb-4">✨</div>
+            <p className="text-xl text-white">7 questions await...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [started, setStarted] = useState(false);
+  const [showIntro, setShowIntro] = useState(false);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selections, setSelections] = useState<Personality[]>([]);
   const [showResults, setShowResults] = useState(false);
@@ -219,13 +309,51 @@ export default function Home() {
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isDark, setIsDark] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("quiz-dark-mode");
+    if (savedTheme) {
+      setIsDark(savedTheme === "true");
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("quiz-dark-mode", String(isDark));
+    if (isDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("result");
+    if (result) {
+      try {
+        const decoded = JSON.parse(atob(result));
+        setSelections(decoded.selections || []);
+        setShowResults(true);
+        setStarted(true);
+      } catch (e) {
+        console.error("Failed to parse result from URL");
+      }
+    }
+  }, []);
+
   const handleStart = () => {
+    setShowIntro(true);
+  };
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
     setStarted(true);
   };
 
   const handleAnswer = useCallback((personality: Personality, answerIndex?: number) => {
+    playSound("select");
     setSelectedAnswer(answerIndex ?? null);
     setIsTransitioning(true);
 
@@ -236,6 +364,7 @@ export default function Home() {
       if (currentQuestion < questions.length - 1) {
         setCurrentQuestion(currentQuestion + 1);
       } else {
+        playSound("complete");
         setShowResults(true);
       }
       setIsTransitioning(false);
@@ -325,7 +454,6 @@ export default function Home() {
             files: [file],
           });
         } catch (shareError) {
-          console.log("Share with image failed, trying without image:", shareError);
           await navigator.share({
             title: "My Coffee Personality",
             text: shareText,
@@ -379,9 +507,17 @@ export default function Home() {
     }
   };
 
+  const copyShareableLink = () => {
+    const encoded = btoa(JSON.stringify({ selections }));
+    const url = `https://quiz-project-jade.vercel.app?result=${encoded}`;
+    navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 3000);
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (showResults || !started || isTransitioning) return;
+      if (showResults || !started || isTransitioning || showIntro) return;
 
       if (e.key === "ArrowDown" || e.key === "ArrowRight") {
         e.preventDefault();
@@ -406,16 +542,26 @@ export default function Home() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentQuestion, selectedAnswer, showResults, started, isTransitioning, handleAnswer]);
+  }, [currentQuestion, selectedAnswer, showResults, started, isTransitioning, handleAnswer, showIntro]);
+
+  if (showIntro) {
+    return <IntroScreen onComplete={handleIntroComplete} />;
+  }
 
   if (!started) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] flex items-center justify-center p-4">
-        <div className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-12 max-w-lg text-center shadow-2xl">
-          <h1 className="text-4xl font-bold text-[#6b4423] mb-4">
+      <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-[#d4a574] to-[#a67c52]"} flex items-center justify-center p-4`}>
+        <div className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-12 max-w-lg text-center shadow-2xl`}>
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className={`absolute top-4 right-4 p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+          >
+            {isDark ? "☀️" : "🌙"}
+          </button>
+          <h1 className={`text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-[#6b4423]"}`}>
             Coffee Personality Quiz
           </h1>
-          <p className="text-[#8b6239] text-lg mb-8">
+          <p className={`text-lg mb-8 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
             Discover your coffee soulmate! Answer 7 fun questions and find out which brew matches your personality.
           </p>
           <button
@@ -434,13 +580,19 @@ export default function Home() {
     const topResult = results[0];
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] p-4 py-8">
+      <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-[#d4a574] to-[#a67c52]"} p-4 py-8`}>
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className={`fixed top-4 right-4 p-2 rounded-full z-50 ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+        >
+          {isDark ? "☀️" : "🌙"}
+        </button>
         <Confetti />
-        <div ref={resultsRef} className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl">
-          <h1 className="text-3xl font-bold text-[#6b4423] mb-2 text-center">
+        <div ref={resultsRef} className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl`}>
+          <h1 className={`text-3xl font-bold mb-2 text-center ${isDark ? "text-white" : "text-[#6b4423]"}`}>
             Your Coffee Personality
           </h1>
-          <p className="text-[#8b6239] text-center mb-6">
+          <p className={`text-center mb-6 ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>
             Here&apos;s your complete breakdown!
           </p>
 
@@ -466,7 +618,7 @@ export default function Home() {
               return (
                 <div
                   key={result.personality}
-                  className="bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] rounded-xl p-4 flex items-center gap-4 border-2 border-[#d4a574]"
+                  className={`rounded-xl p-4 flex items-center gap-4 border-2 ${isDark ? "bg-gray-700 border-gray-600" : "bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] border-[#d4a574]"}`}
                 >
                   <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
                     <Image
@@ -478,11 +630,11 @@ export default function Home() {
                   </div>
                   <div className="flex-grow">
                     <div className="flex justify-between items-center mb-1">
-                      <h3 className="font-semibold text-[#5a3d2b]">{data.name}</h3>
-                      <span className="text-[#6b4423] font-bold">{result.percentage}%</span>
+                      <h3 className={`font-semibold ${isDark ? "text-white" : "text-[#5a3d2b]"}`}>{data.name}</h3>
+                      <span className={`font-bold ${isDark ? "text-gray-300" : "text-[#6b4423]"}`}>{result.percentage}%</span>
                     </div>
-                    <p className="text-sm text-[#8b6239]">{data.coffee}</p>
-                    <div className="w-full bg-[#d4a574]/30 rounded-full h-2 mt-2">
+                    <p className={`text-sm ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>{data.coffee}</p>
+                    <div className={`w-full rounded-full h-2 mt-2 ${isDark ? "bg-gray-600" : "bg-[#d4a574]/30"}`}>
                       <div
                         className="bg-[#d4a574] h-2 rounded-full transition-all duration-500"
                         style={{ width: `${result.percentage}%` }}
@@ -503,13 +655,20 @@ export default function Home() {
           </button>
 
           <button
+            onClick={copyShareableLink}
+            className="w-full mt-4 bg-transparent border-2 border-[#d4a574] text-[#6b4423] py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+          >
+            🔗 Copy Shareable Link
+          </button>
+
+          <button
             onClick={handleRestart}
             className="w-full mt-4 bg-gradient-to-r from-[#d4a574] to-[#c49566] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform"
           >
             Take Quiz Again
           </button>
 
-          <p className="text-center text-[#8b6239] text-sm mt-6">
+          <p className={`text-center text-sm mt-6 ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>
             Created by Raka Adrianto. Have feedback, questions, or want to say hi?{" "}
             <a
               href="https://www.linkedin.com/in/lugasraka/"
@@ -537,18 +696,24 @@ export default function Home() {
   const question = questions[currentQuestion];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] flex items-center justify-center p-4">
-      <div className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-8 max-w-xl w-full shadow-2xl">
+    <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-[#d4a574] to-[#a67c52]"} flex items-center justify-center p-4`}>
+      <button
+        onClick={() => setIsDark(!isDark)}
+        className={`fixed top-4 right-4 p-2 rounded-full z-50 ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+      >
+        {isDark ? "☀️" : "🌙"}
+      </button>
+      <div className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-8 max-w-xl w-full shadow-2xl`}>
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
-            <span className="text-[#8b6239] font-medium">
-              Question {currentQuestion + 1} of {questions.length}
+            <span className={`font-medium ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
+              Q{currentQuestion + 1} of {questions.length}
             </span>
-            <span className="text-[#8b6239] font-medium">
+            <span className={`font-medium ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
               {Math.round(((currentQuestion + 1) / questions.length) * 100)}%
             </span>
           </div>
-          <div className="w-full bg-[#d4a574]/30 rounded-full h-3">
+          <div className={`w-full rounded-full h-3 ${isDark ? "bg-gray-700" : "bg-[#d4a574]/30"}`}>
             <div
               className="bg-gradient-to-r from-[#d4a574] to-[#c49566] h-3 rounded-full transition-all duration-300"
               style={{ width: `${((currentQuestion + 1) / questions.length) * 100}%` }}
@@ -556,12 +721,12 @@ export default function Home() {
           </div>
         </div>
 
-        <PersonalityPreview selections={selections} />
+        <PersonalityPreview selections={selections} isDark={isDark} />
 
         {currentQuestion > 0 && (
           <button
             onClick={handleBack}
-            className="mb-4 text-[#8b6239] hover:text-[#6b4423] font-medium flex items-center gap-1 transition-colors"
+            className={`mb-4 font-medium flex items-center gap-1 transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-[#8b6239] hover:text-[#6b4423]"}`}
           >
             ← Back
           </button>
@@ -577,7 +742,7 @@ export default function Home() {
             />
           </div>
 
-          <h2 className="text-2xl font-bold text-[#6b4423] mb-6">
+          <h2 className={`text-2xl font-bold mb-6 ${isDark ? "text-white" : "text-[#6b4423]"}`}>
             {question.question}
           </h2>
 
@@ -596,7 +761,7 @@ export default function Home() {
             ))}
           </div>
 
-          <p className="text-center text-[#8b6239] text-xs mt-4">
+          <p className={`text-center text-xs mt-4 ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>
             Use arrow keys to navigate, Enter to select
           </p>
         </div>
