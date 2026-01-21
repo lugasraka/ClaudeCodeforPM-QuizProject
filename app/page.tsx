@@ -309,9 +309,6 @@ export default function Home() {
 
     try {
       const canvas = await html2canvas(resultsRef.current, {
-        background: "#fdf6ec",
-        scale: 2,
-        useCORS: true,
         logging: false,
       });
 
