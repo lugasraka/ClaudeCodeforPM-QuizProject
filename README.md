@@ -8,17 +8,46 @@ A fun personality quiz that matches you with your perfect coffee based on your l
 
 ## Features
 
-- 7 personality-based questions
+### Core Features
+- 7 personality-based questions with custom images
 - 4 coffee personality types: Cozy Classic, Sweet Enthusiast, Health Nut, Indulgent Treat
 - Percentage breakdown of all personality matches
+- Detailed descriptions for each personality type
 - Confetti celebration on results
 - Mobile-responsive design
 
+### User Experience
+- Animated intro screen with smooth transitions
+- Real-time personality preview while taking the quiz
+- Progress tracking with visual progress bar
+- Question counter (Q1 of 7, etc.)
+- Back button to revisit and change answers
+- Smooth transitions between questions
+
+### Accessibility & Usability
+- Keyboard navigation (arrow keys + Enter)
+- Dark mode toggle with persistence
+- Screen reader friendly
+
+### Engagement Features
+- Sound effects for selections and completion
+- Share results with screenshot capture
+- Shareable URL links that preserve quiz results
+- Social links to GitHub and LinkedIn
+
+### Technical
+- Built with Next.js 16 and TypeScript
+- Server-side rendering with client-side interactivity
+- Responsive design with Tailwind CSS
+- Optimized for production with Vercel deployment
+
 ## Tech Stack
+
 - Next.js 16
 - TypeScript
 - Tailwind CSS
-- Deployed on Vercel
+- html2canvas for screenshot capture
+- Vercel deployment
 
 ## Getting Started
 
@@ -29,7 +58,17 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to view it locally.
 
+## Personality Types
+
+| Personality | Coffee Match | Tagline |
+|-------------|--------------|---------|
+| Cozy Classic | Medium Roast Drip | Comfort in every cup |
+| Sweet Enthusiast | Caramel Latte | Life's too short for bitter |
+| Health Nut | Oat Milk Americano | Wellness in every sip |
+| Indulgent Treat | Mocha with Whip | Coffee is dessert |
+
 ## Author
 
 Created by **Raka Adrianto**
 [LinkedIn](https://www.linkedin.com/in/lugasraka/)
+[GitHub](https://github.com/lugasraka/ClaudeCodeforPM-QuizProject)
