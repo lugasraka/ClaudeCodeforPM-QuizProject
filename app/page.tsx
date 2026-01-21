@@ -299,12 +299,9 @@ export default function Home() {
 
     try {
       const canvas = await html2canvas(resultsRef.current, {
-        backgroundColor: "#fdf6ec",
         scale: 2,
         useCORS: true,
         logging: false,
-        allowTaint: true,
-        removeContainer: true,
       });
 
       const dataUrl = canvas.toDataURL("image/png");
