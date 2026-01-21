@@ -4,7 +4,7 @@ A fun personality quiz that matches you with your perfect coffee based on your l
 
 **Live Demo:** [quiz-project-jade.vercel.app](https://quiz-project-jade.vercel.app)
 
-![alt text](public/Screenshot-Results.png)
+![alt text](public/AnimationCoffee.gif)
 
 ## Features
 
