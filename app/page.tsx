@@ -325,6 +325,15 @@ export default function Home() {
             >
               LinkedIn
             </a>
+            {" | "}
+            <a
+              href="https://github.com/lugasraka/ClaudeCodeforPM-QuizProject"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#6b4423] underline hover:text-[#5a3d2b]"
+            >
+              View Source on GitHub
+            </a>
           </p>
         </div>
       </div>
