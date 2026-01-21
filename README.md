@@ -1,8 +1,10 @@
 # Coffee Personality Quiz
 
-A fun personality quiz that matches you with your perfect coffee based on your lifestyle and preferences. Answer 7 questions and discover which brew suits your personality.
+A fun personality quiz that matches you with your perfect coffee based on your lifestyle and preferences. Answer 7 questions and discover which brew suits your personality. Originally built as part of the Vibe Coding course by Carl Vellotti [Claude Code for Product Managers](https://ccforpms.com/).
 
 **Live Demo:** [quiz-project-jade.vercel.app](https://quiz-project-jade.vercel.app)
+
+![alt text](public/Screenshot-Results.png)
 
 ## Features
 
