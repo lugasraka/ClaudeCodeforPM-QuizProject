@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import html2canvas from "html2canvas";
 
 function Confetti() {
   const [pieces, setPieces] = useState<Array<{ id: number; left: number; delay: number; duration: number; color: string }>>([]);
@@ -217,6 +218,8 @@ export default function Home() {
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   const handleStart = () => {
     setStarted(true);
@@ -280,23 +283,85 @@ export default function Home() {
     return percentages;
   };
 
-  const shareResults = () => {
+  const shareResults = async () => {
     const results = calculateResults();
     const topResult = results[0];
     const data = personalityData[topResult.personality];
     
     const shareText = `☕ I took the Coffee Personality Quiz and got "${data.name}" - ${data.tagline}\n\n${data.coffee}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
     
-    if (navigator.share) {
-      navigator.share({
-        title: "My Coffee Personality",
-        text: shareText,
-        url: "https://quiz-project-jade.vercel.app",
+    if (!resultsRef.current) {
+      if (navigator.share) {
+        navigator.share({
+          title: "My Coffee Personality",
+          text: shareText,
+          url: "https://quiz-project-jade.vercel.app",
+        });
+      } else {
+        navigator.clipboard.writeText(shareText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
+      return;
+    }
+
+    setIsCapturing(true);
+
+    try {
+      const canvas = await html2canvas(resultsRef.current, {
+        backgroundColor: "#fdf6ec",
+        scale: 2,
+        useCORS: true,
+        logging: false,
       });
-    } else {
-      navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+
+      canvas.toBlob(async (blob) => {
+        if (!blob) {
+          setIsCapturing(false);
+          return;
+        }
+
+        const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
+
+        if (navigator.share && navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            files: [file],
+          });
+        } else if (navigator.share) {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            url: "https://quiz-project-jade.vercel.app",
+          });
+        }
+
+        const imageUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = imageUrl;
+        link.download = "my-coffee-personality.png";
+        link.click();
+        URL.revokeObjectURL(imageUrl);
+
+        setIsCapturing(false);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }, "image/png");
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+      setIsCapturing(false);
+      if (navigator.share) {
+        navigator.share({
+          title: "My Coffee Personality",
+          text: shareText,
+          url: "https://quiz-project-jade.vercel.app",
+        });
+      } else {
+        navigator.clipboard.writeText(shareText);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      }
     }
   };
 
@@ -357,7 +422,7 @@ export default function Home() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-[#d4a574] to-[#a67c52] p-4 py-8">
         <Confetti />
-        <div className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl">
+        <div ref={resultsRef} className="bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0] rounded-3xl p-8 max-w-2xl mx-auto shadow-2xl">
           <h1 className="text-3xl font-bold text-[#6b4423] mb-2 text-center">
             Your Coffee Personality
           </h1>
@@ -417,9 +482,10 @@ export default function Home() {
 
           <button
             onClick={shareResults}
-            className="w-full mt-6 bg-[#6b4423] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+            disabled={isCapturing}
+            className="w-full mt-6 bg-[#6b4423] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {copied ? "✓ Copied to Clipboard!" : "📤 Share Your Results"}
+            {isCapturing ? "⏳ Capturing..." : copied ? "✓ Screenshot Saved!" : "📤 Share Your Results"}
           </button>
 
           <button
