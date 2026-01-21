@@ -15,7 +15,6 @@ A fun personality quiz that matches you with your perfect coffee based on your l
 - Mobile-responsive design
 
 ## Tech Stack
-
 - Next.js 16
 - TypeScript
 - Tailwind CSS
