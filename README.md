@@ -10,6 +10,7 @@ A fun personality quiz that matches you with your perfect coffee based on your l
 
 ### Core Features
 - 7 personality-based questions with custom images
+- **Randomized question order** for replayability
 - 4 coffee personality types: Cozy Classic, Sweet Enthusiast, Health Nut, Indulgent Treat
 - Percentage breakdown of all personality matches
 - Detailed descriptions for each personality type
@@ -37,6 +38,8 @@ A fun personality quiz that matches you with your perfect coffee based on your l
 
 ### Technical
 - Built with Next.js 16 and TypeScript
+- **Optimized bundle size** with code splitting and dynamic imports
+- **Component-based architecture** for better maintainability
 - Server-side rendering with client-side interactivity
 - Responsive design with Tailwind CSS
 - Optimized for production with Vercel deployment
