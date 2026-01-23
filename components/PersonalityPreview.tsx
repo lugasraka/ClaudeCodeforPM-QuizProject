@@ -26,7 +26,7 @@ export default function PersonalityPreview({ selections, isDark }: { selections:
           const percentage = Math.round((counts[personality] / total) * 100);
           return (
             <div key={personality} className="flex items-center gap-2">
-              <div className={`flex-grow rounded-full h-2 ${isDark ? "bg-gray-700" : "bg-[#d4a574]/20"}`}>
+              <div className={`flex-grow rounded-full h-2 ${isDark ? "bg-gray-600" : "bg-[#d4a574]/40"}`}>
                 <div
                   className="bg-[#d4a574] h-2 rounded-full transition-all duration-300"
                   style={{ width: `${percentage}%` }}

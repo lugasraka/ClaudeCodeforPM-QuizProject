@@ -328,7 +328,7 @@ export default function Home() {
           </div>
         </div>
 
-        <PersonalityPreview selections={selections} isDark={isDark} />
+        {selections.length > 0 && <PersonalityPreview selections={selections} isDark={isDark} />}
 
         {currentQuestion > 0 && (
           <button
