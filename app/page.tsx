@@ -13,7 +13,7 @@ import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_U
 import type { Personality, Question } from "../utils/quizData";
 
 const Results = dynamic(() => import("../components/Results"), {
-  loading: () => <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-[#d4a574]"} flex items-center justify-center text-white p-4`}>Loading your results...</div>,
+  loading: () => <div className="min-h-screen flex items-center justify-center text-white p-4">Loading your results...</div>,
 });
 
 export default function Home() {
@@ -31,110 +31,106 @@ export default function Home() {
   const [imageError, setImageError] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
-  const resultsRef = useRef<HTMLDivElement>(null);
-  const startButtonRef = useRef<HTMLButtonElement>(null);
-  const answerButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
-
-  const Results = dynamic(() => import("../components/Results"), {
-    loading: () => <div className="min-h-screen flex items-center justify-center text-white p-4">Loading your results...</div>,
-  });
 
   useEffect(() => {
-    if (!started && startButtonRef.current) {
-      startButtonRef.current.focus();
-    }
-  }, [started]);
-
-  useEffect(() => {
-    answerButtonsRef.current = answerButtonsRef.current.slice(0, questions[currentQuestion]?.answers.length);
-  }, [currentQuestion]);
-
-  useEffect(() => {
-    if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
-      answerButtonsRef.current[selectedAnswer]?.focus();
-    }
-  }, [selectedAnswer, started, showResults]);
-
-  useEffect(() => {
-    if (!started && startButtonRef.current) {
-      startButtonRef.current.focus();
-    }
-  }, [started]);
-
-  useEffect(() => {
-    answerButtonsRef.current = answerButtonsRef.current.slice(0, questions[currentQuestion]?.answers.length);
-  }, [currentQuestion]);
-
-  useEffect(() => {
-    if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
-      answerButtonsRef.current[selectedAnswer]?.focus();
-    }
-      try {
-  }, [selectedAnswer, started, showResults]);
-        } catch (shareError) {
-          await navigator.share({
-            title: "My Coffee Personality",
-            text: shareText,
-            url: APP_URL,
-          });
-        }
-      } else if (navigator.share) {
-        try {
-          await navigator.share({
-            title: "My Coffee Personality",
-            text: shareText,
-            url: APP_URL,
-          });
-        } catch (shareError) {
-          console.log("Share failed:", shareError);
-        }
-      }
-
-      const link = document.createElement("a");
-      link.href = dataUrl;
-      link.download = "my-coffee-personality.png";
-      link.click();
-
-      setIsCapturing(false);
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
-    } catch (error) {
-      console.error("Error capturing screenshot:", error);
-      setIsCapturing(false);
-      setError("Failed to capture screenshot. You can still share using the link below!");
-      setTimeout(() => setError(null), 5000);
-      fallbackShare();
-    }
-  };
-
-  const fallbackShare = () => {
-    const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: "My Coffee Personality",
-        text: shareText,
-        url: APP_URL,
-      });
-    } else {
-      navigator.clipboard.writeText(shareText);
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
-    }
-  };
-
-  const copyShareableLink = () => {
     try {
-      const encoded = btoa(JSON.stringify({ selections }));
-      const url = `${APP_URL}?result=${encoded}`;
-      navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
+      const savedTheme = localStorage.getItem("quiz-dark-mode");
+      if (savedTheme) {
+        setIsDark(savedTheme === "true");
+      }
+      
+      const savedSound = localStorage.getItem("quiz-sound-enabled");
+      if (savedSound !== null) {
+        const enabled = savedSound === "true";
+        setSoundEnabledState(enabled);
+        setSoundEnabled(enabled);
+      }
     } catch (e) {
-      console.error("Failed to copy link:", e);
-      setError("Failed to copy link. Please try again.");
-      setTimeout(() => setError(null), 3000);
+      console.error("Failed to load preferences from localStorage:", e);
     }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("quiz-dark-mode", String(isDark));
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } catch (e) {
+      console.error("Failed to save theme to localStorage:", e);
+    }
+  }, [isDark]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("result");
+    if (result) {
+      try {
+        const decoded = JSON.parse(atob(result));
+        setSelections(decoded.selections || []);
+        setShowResults(true);
+        setStarted(true);
+      } catch (e) {
+        console.error("Failed to parse result from URL");
+      }
+    }
+  }, []);
+
+  const handleStart = () => {
+    const shuffled = shuffleArray(questions.map(q => ({
+      ...q,
+      answers: shuffleArray(q.answers)
+    })));
+    setShuffledQuestions(shuffled);
+    setShowIntro(true);
+  };
+
+  const handleIntroComplete = () => {
+    setShowIntro(false);
+    setStarted(true);
+  };
+
+  const handleAnswer = useCallback((personality: Personality, answerIndex?: number) => {
+    playSound("select");
+    setSelectedAnswer(answerIndex ?? null);
+    setIsTransitioning(true);
+
+    setTimeout(() => {
+      const newSelections = [...selections, personality];
+      setSelections(newSelections);
+
+      if (currentQuestion < shuffledQuestions.length - 1) {
+        setCurrentQuestion(currentQuestion + 1);
+      } else {
+        playSound("complete");
+        setShowResults(true);
+      }
+      setIsTransitioning(false);
+      setSelectedAnswer(null);
+    }, TRANSITION_DURATION);
+  }, [currentQuestion, selections, shuffledQuestions.length]);
+
+  const handleBack = () => {
+    if (currentQuestion > 0) {
+      const newSelections = [...selections];
+      newSelections.pop();
+      setSelections(newSelections);
+      setCurrentQuestion(currentQuestion - 1);
+    }
+  };
+
+  const handleRestart = () => {
+    const shuffled = shuffleArray(questions.map(q => ({
+      ...q,
+      answers: shuffleArray(q.answers)
+    })));
+    setShuffledQuestions(shuffled);
+    setStarted(false);
+    setCurrentQuestion(0);
+    setSelections([]);
+    setShowResults(false);
   };
 
   const getTopResultName = () => {
@@ -225,7 +221,7 @@ export default function Home() {
           <p className={`text-lg mb-8 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
             Discover your coffee soulmate! Answer 7 fun questions and find out which brew matches your personality.
           </p>
-          <Button onClick={handleStart} variant="primary" ref={startButtonRef}>
+          <Button onClick={handleStart} variant="primary">
             Start Quiz ☕
           </Button>
         </div>
@@ -240,11 +236,10 @@ export default function Home() {
         results={results}
         isDark={isDark}
         onRestart={handleRestart}
-        onShare={shareResults}
+        onShare={undefined}
         onCopyLink={copyShareableLink}
-        isCapturing={isCapturing}
+        isCapturing={false}
         copied={copied}
-        error={error}
       />
     );
   }
@@ -323,14 +318,9 @@ export default function Home() {
             {question.answers.map((answer, idx) => (
               <Button
                 key={idx}
-                innerRef={el => answerButtonsRef.current[idx] = el}
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
-                aria-checked={selectedAnswer === idx}
-                className={`text-left p-4 justify-start ${
-                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : "focus-visible:ring-4 focus-visible:ring-offset-2 focus-visible:ring-[#d4a574]/50"
-                }`}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
                 {answer.text}
