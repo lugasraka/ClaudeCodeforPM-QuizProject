@@ -1,7 +1,30 @@
-export function playSound(type: "select" | "success" | "complete") {
-  if (typeof window === "undefined") return;
+// Create a single shared AudioContext to prevent memory leaks
+let audioContext: AudioContext | null = null;
+let soundEnabled = true;
 
-  const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+  }
+  
+  return audioContext;
+}
+
+export function setSoundEnabled(enabled: boolean) {
+  soundEnabled = enabled;
+}
+
+export function isSoundEnabled(): boolean {
+  return soundEnabled;
+}
+
+export function playSound(type: "select" | "success" | "complete") {
+  if (!soundEnabled) return;
+  
+  const audioContext = getAudioContext();
+  if (!audioContext) return;
 
   if (type === "select") {
     const oscillator = audioContext.createOscillator();

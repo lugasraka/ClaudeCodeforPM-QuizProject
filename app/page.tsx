@@ -3,11 +3,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
 import IntroScreen from "../components/IntroScreen";
-import PersonalityPreview from "../components/PersonalityPreview";
 import Results from "../components/Results";
+import Button from "../components/Button";
+import ErrorMessage from "../components/ErrorMessage";
 import { questions } from "../utils/quizData";
 import { shuffleArray, calculateResults, personalityData } from "../utils/helpers";
-import { playSound } from "../utils/sounds";
+import { playSound, setSoundEnabled, isSoundEnabled } from "../utils/sounds";
+import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_URL } from "../utils/constants";
 import type { Personality, Question } from "../utils/quizData";
 
 export default function Home() {
@@ -22,21 +24,41 @@ export default function Home() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
+  const [imageError, setImageError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [soundEnabled, setSoundEnabledState] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem("quiz-dark-mode");
-    if (savedTheme) {
-      setIsDark(savedTheme === "true");
+    try {
+      const savedTheme = localStorage.getItem("quiz-dark-mode");
+      if (savedTheme) {
+        setIsDark(savedTheme === "true");
+      }
+      
+      const savedSound = localStorage.getItem("quiz-sound-enabled");
+      if (savedSound !== null) {
+        const enabled = savedSound === "true";
+        setSoundEnabledState(enabled);
+        setSoundEnabled(enabled);
+      }
+    } catch (e) {
+      console.error("Failed to load preferences from localStorage:", e);
+      // Continue without saved preferences
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem("quiz-dark-mode", String(isDark));
-    if (isDark) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    try {
+      localStorage.setItem("quiz-dark-mode", String(isDark));
+      if (isDark) {
+        document.documentElement.classList.add("dark");
+      } else {
+        document.documentElement.classList.remove("dark");
+      }
+    } catch (e) {
+      console.error("Failed to save theme to localStorage:", e);
+      // Continue without saving theme
     }
   }, [isDark]);
 
@@ -86,7 +108,7 @@ export default function Home() {
       }
       setIsTransitioning(false);
       setSelectedAnswer(null);
-    }, 400);
+    }, TRANSITION_DURATION);
   }, [currentQuestion, selections, shuffledQuestions.length]);
 
   const handleBack = () => {
@@ -140,7 +162,7 @@ export default function Home() {
 
       const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
 
-      const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
+      const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
 
       if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
@@ -153,7 +175,7 @@ export default function Home() {
           await navigator.share({
             title: "My Coffee Personality",
             text: shareText,
-            url: "https://quiz-project-jade.vercel.app",
+            url: APP_URL,
           });
         }
       } else if (navigator.share) {
@@ -161,7 +183,7 @@ export default function Home() {
           await navigator.share({
             title: "My Coffee Personality",
             text: shareText,
-            url: "https://quiz-project-jade.vercel.app",
+            url: APP_URL,
           });
         } catch (shareError) {
           console.log("Share failed:", shareError);
@@ -175,36 +197,44 @@ export default function Home() {
 
       setIsCapturing(false);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
     } catch (error) {
       console.error("Error capturing screenshot:", error);
       setIsCapturing(false);
+      setError("Failed to capture screenshot. You can still share using the link below!");
+      setTimeout(() => setError(null), 5000);
       fallbackShare();
     }
   };
 
   const fallbackShare = () => {
-    const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: https://quiz-project-jade.vercel.app`;
+    const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
 
     if (navigator.share) {
       navigator.share({
         title: "My Coffee Personality",
         text: shareText,
-        url: "https://quiz-project-jade.vercel.app",
+        url: APP_URL,
       });
     } else {
       navigator.clipboard.writeText(shareText);
       setCopied(true);
-      setTimeout(() => setCopied(false), 3000);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
     }
   };
 
   const copyShareableLink = () => {
-    const encoded = btoa(JSON.stringify({ selections }));
-    const url = `https://quiz-project-jade.vercel.app?result=${encoded}`;
-    navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 3000);
+    try {
+      const encoded = btoa(JSON.stringify({ selections }));
+      const url = `${APP_URL}?result=${encoded}`;
+      navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
+    } catch (e) {
+      console.error("Failed to copy link:", e);
+      setError("Failed to copy link. Please try again.");
+      setTimeout(() => setError(null), 3000);
+    }
   };
 
   const getTopResultName = () => {
@@ -223,6 +253,17 @@ export default function Home() {
     const results = calculateResults(selections);
     const topResult = results[0];
     return personalityData[topResult.personality].coffee;
+  };
+
+  const toggleSound = () => {
+    const newState = !soundEnabled;
+    setSoundEnabledState(newState);
+    setSoundEnabled(newState);
+    try {
+      localStorage.setItem("quiz-sound-enabled", String(newState));
+    } catch (e) {
+      console.error("Failed to save sound preference:", e);
+    }
   };
 
   useEffect(() => {
@@ -261,25 +302,32 @@ export default function Home() {
   if (!started) {
     return (
       <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-[#d4a574] to-[#a67c52]"} flex items-center justify-center p-4`}>
-        <div className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-12 max-w-lg text-center shadow-2xl`}>
-          <button
-            onClick={() => setIsDark(!isDark)}
-            className={`absolute top-4 right-4 p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
-          >
-            {isDark ? "☀️" : "🌙"}
-          </button>
+        <div className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-12 max-w-lg text-center shadow-2xl relative`}>
+          <div className="absolute top-4 right-4 flex gap-2">
+            <button
+              onClick={toggleSound}
+              className={`p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+              title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+            >
+              {soundEnabled ? "🔊" : "🔇"}
+            </button>
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className={`p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+              title={isDark ? "Light mode" : "Dark mode"}
+            >
+              {isDark ? "☀️" : "🌙"}
+            </button>
+          </div>
           <h1 className={`text-4xl font-bold mb-4 ${isDark ? "text-white" : "text-[#6b4423]"}`}>
             Coffee Personality Quiz
           </h1>
           <p className={`text-lg mb-8 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
             Discover your coffee soulmate! Answer 7 fun questions and find out which brew matches your personality.
           </p>
-          <button
-            onClick={handleStart}
-            className="bg-gradient-to-r from-[#d4a574] to-[#c49566] text-white px-8 py-4 rounded-xl text-lg font-semibold hover:scale-105 transition-transform shadow-lg"
-          >
+          <Button onClick={handleStart} variant="primary">
             Start Quiz ☕
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -296,6 +344,7 @@ export default function Home() {
         onCopyLink={copyShareableLink}
         isCapturing={isCapturing}
         copied={copied}
+        error={error}
       />
     );
   }
@@ -304,12 +353,22 @@ export default function Home() {
 
   return (
     <div className={`min-h-screen ${isDark ? "bg-gradient-to-br from-gray-900 to-gray-800" : "bg-gradient-to-br from-[#d4a574] to-[#a67c52]"} flex items-center justify-center p-4`}>
-      <button
-        onClick={() => setIsDark(!isDark)}
-        className={`fixed top-4 right-4 p-2 rounded-full z-50 ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
-      >
-        {isDark ? "☀️" : "🌙"}
-      </button>
+      <div className="fixed top-4 right-4 flex gap-2 z-50">
+        <button
+          onClick={toggleSound}
+          className={`p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+          title={soundEnabled ? "Mute sounds" : "Enable sounds"}
+        >
+          {soundEnabled ? "🔊" : "🔇"}
+        </button>
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className={`p-2 rounded-full ${isDark ? "bg-gray-700 text-yellow-400" : "bg-white text-gray-600"}`}
+          title={isDark ? "Light mode" : "Dark mode"}
+        >
+          {isDark ? "☀️" : "🌙"}
+        </button>
+      </div>
       <div className={`${isDark ? "bg-gray-800" : "bg-gradient-to-b from-[#fdf6ec] to-[#f9ede0]"} rounded-3xl p-8 max-w-xl w-full shadow-2xl`}>
         <div className="mb-6">
           <div className="flex justify-between items-center mb-2">
@@ -328,8 +387,6 @@ export default function Home() {
           </div>
         </div>
 
-        {selections.length > 0 && <PersonalityPreview selections={selections} isDark={isDark} />}
-
         {currentQuestion > 0 && (
           <button
             onClick={handleBack}
@@ -340,13 +397,22 @@ export default function Home() {
         )}
 
         <div className={`transition-opacity duration-300 ${isTransitioning ? "opacity-50" : "opacity-100"}`}>
-          <div className="w-full h-40 rounded-xl overflow-hidden mb-4 relative">
+          <div className="w-full h-40 rounded-xl overflow-hidden mb-4 relative bg-gradient-to-br from-[#d4a574] to-[#c49566]">
             <Image
               src={question.image}
               alt={question.question}
               fill
               className="object-cover"
+              placeholder="blur"
+              blurDataURL={IMAGE_PLACEHOLDER}
+              priority={currentQuestion === 0}
+              onError={() => setImageError(true)}
             />
+            {imageError && (
+              <div className="absolute inset-0 flex items-center justify-center text-white text-4xl">
+                ☕
+              </div>
+            )}
           </div>
 
           <h2 className={`text-2xl font-bold mb-6 ${isDark ? "text-white" : "text-[#6b4423]"}`}>
@@ -355,16 +421,18 @@ export default function Home() {
 
           <div className="space-y-3">
             {question.answers.map((answer, idx) => (
-              <button
+              <Button
                 key={idx}
                 onClick={() => handleAnswer(answer.personality, idx)}
-                className={`w-full bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] text-[#5a3d2b] p-4 rounded-xl text-left hover:from-[#d4a574] hover:to-[#c49566] hover:text-white transition-all hover:scale-[1.02] border-2 border-[#d4a574] font-medium ${
+                variant="answer"
+                fullWidth
+                className={`text-left p-4 ${
                   selectedAnswer === idx ? "ring-4 ring-[#d4a574]/50 scale-[1.02]" : ""
                 }`}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
                 {answer.text}
-              </button>
+              </Button>
             ))}
           </div>
 

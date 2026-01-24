@@ -1,0 +1,16 @@
+{
+  "name": "Coffee Personality Quiz",
+  "short_name": "Coffee Quiz",
+  "description": "Discover your coffee soulmate with our fun personality quiz",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fdf6ec",
+  "theme_color": "#d4a574",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}

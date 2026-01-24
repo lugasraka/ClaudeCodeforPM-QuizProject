@@ -3,6 +3,9 @@
 import { useRef } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
+import Button from "./Button";
+import ErrorMessage from "./ErrorMessage";
+import { IMAGE_PLACEHOLDER } from "../utils/constants";
 import type { Personality } from "../utils/quizData";
 import { personalityData } from "../utils/quizData";
 
@@ -20,9 +23,10 @@ interface ResultsProps {
   onCopyLink: () => void;
   isCapturing: boolean;
   copied: boolean;
+  error?: string | null;
 }
 
-export default function Results({ results, isDark, onRestart, onShare, onCopyLink, isCapturing, copied }: ResultsProps) {
+export default function Results({ results, isDark, onRestart, onShare, onCopyLink, isCapturing, copied, error }: ResultsProps) {
   const resultsRef = useRef<HTMLDivElement>(null);
   const topResult = results[0];
 
@@ -67,6 +71,8 @@ export default function Results({ results, isDark, onRestart, onShare, onCopyLin
                     alt={data.name}
                     fill
                     className="object-cover"
+                    placeholder="blur"
+                    blurDataURL={IMAGE_PLACEHOLDER}
                   />
                 </div>
                 <div className="flex-grow">
@@ -87,27 +93,44 @@ export default function Results({ results, isDark, onRestart, onShare, onCopyLin
           })}
         </div>
 
-        <button
+        {error && (
+          <div className="mt-6">
+            <ErrorMessage
+              message={error}
+              icon="☕"
+              isDark={isDark}
+            />
+          </div>
+        )}
+
+        <Button
           onClick={onShare}
           disabled={isCapturing}
-          className="w-full mt-6 bg-[#6b4423] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          variant="secondary"
+          fullWidth
+          isLoading={isCapturing}
+          className="mt-6 py-3 flex items-center justify-center gap-2"
         >
-          {isCapturing ? "⏳ Capturing..." : copied ? "✓ Screenshot Saved!" : "📤 Share Your Results"}
-        </button>
+          {copied ? "✓ Screenshot Saved!" : "📤 Share Your Results"}
+        </Button>
 
-        <button
+        <Button
           onClick={onCopyLink}
-          className="w-full mt-4 bg-transparent border-2 border-[#d4a574] text-[#6b4423] py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+          variant="outline"
+          fullWidth
+          className="mt-4 py-3 flex items-center justify-center gap-2"
         >
           🔗 Copy Shareable Link
-        </button>
+        </Button>
 
-        <button
+        <Button
           onClick={onRestart}
-          className="w-full mt-4 bg-gradient-to-r from-[#d4a574] to-[#c49566] text-white py-3 rounded-xl font-semibold hover:scale-[1.02] transition-transform"
+          variant="primary"
+          fullWidth
+          className="mt-4 py-3"
         >
           Take Quiz Again
-        </button>
+        </Button>
 
         <p className={`text-center text-sm mt-6 ${isDark ? "text-gray-400" : "text-[#8b6239]"}`}>
           Created by Raka Adrianto. Have feedback, questions, or want to say hi?{" "}
