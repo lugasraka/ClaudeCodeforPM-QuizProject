@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
-import dynamic from "next/dynamic";
 import IntroScreen from "../components/IntroScreen";
 import Button from "../components/Button";
 import ErrorMessage from "../components/ErrorMessage";
@@ -235,9 +234,9 @@ export default function Home() {
         isDark={isDark}
         onRestart={handleRestart}
         onShare={undefined}
-        onCopyLink={copyShareableLink}
+        onCopyLink={undefined}
         isCapturing={false}
-        copied={copied}
+        copied={false}
       />
     );
   }
