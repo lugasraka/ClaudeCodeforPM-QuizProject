@@ -34,7 +34,7 @@ export default function Home() {
   const [soundEnabled, setSoundEnabledState] = useState(true);
 
   const startButtonRef = useRef<HTMLButtonElement>(null);
-  const answerButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+const answerButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   useEffect(() => {
     if (!started && startButtonRef.current) {
@@ -131,22 +131,14 @@ export default function Home() {
     setShowResults(false);
   };
 
-  const getTopResultName = () => {
-    const results = calculateResults(selections);
-    const topResult = results[0];
-    return personalityData[topResult.personality].name;
+const handleShare = async () => {
+    // Placeholder for share functionality
+    console.log("Sharing...");
   };
 
-  const getTopResultTagline = () => {
-    const results = calculateResults(selections);
-    const topResult = results[0];
-    return personalityData[topResult.personality].tagline;
-  };
-
-  const getTopResultCoffee = () => {
-    const results = calculateResults(selections);
-    const topResult = results[0];
-    return personalityData[topResult.personality].coffee;
+  const handleCopyLink = () => {
+    // Placeholder for copy link functionality
+    console.log("Copying link...");
   };
 
   const toggleSound = () => {
@@ -234,8 +226,8 @@ export default function Home() {
         results={results}
         isDark={isDark}
         onRestart={handleRestart}
-        onShare={undefined}
-        onCopyLink={undefined}
+        onShare={handleShare}
+        onCopyLink={handleCopyLink}
         isCapturing={false}
         copied={false}
       />
@@ -319,7 +311,7 @@ export default function Home() {
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
-                ref={(el) => (answerButtonRefs.current[idx] = el)}
+                ref={(el) => { answerButtonRefs.current[idx] = el; }}
                 className={selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/50" : ""}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
