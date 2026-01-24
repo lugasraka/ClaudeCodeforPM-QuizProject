@@ -53,6 +53,22 @@ export default function Home() {
     if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
       answerButtonsRef.current[selectedAnswer]?.focus();
     }
+  }, [selectedAnswer, started, showResults]);
+
+  useEffect(() => {
+    if (!started && startButtonRef.current) {
+      startButtonRef.current.focus();
+    }
+  }, [started]);
+
+  useEffect(() => {
+    answerButtonsRef.current = answerButtonsRef.current.slice(0, questions[currentQuestion]?.answers.length);
+  }, [currentQuestion]);
+
+  useEffect(() => {
+    if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
+      answerButtonsRef.current[selectedAnswer]?.focus();
+    }
       try {
   }, [selectedAnswer, started, showResults]);
         } catch (shareError) {
@@ -303,7 +319,7 @@ export default function Home() {
             {question.question}
           </h2>
 
-           <div className="space-y-3" role="radiogroup">
+          <div className="space-y-3">
             {question.answers.map((answer, idx) => (
               <Button
                 key={idx}
@@ -311,10 +327,9 @@ export default function Home() {
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
-                role="radio"
                 aria-checked={selectedAnswer === idx}
                 className={`text-left p-4 justify-start ${
-                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : ""
+                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : "focus-visible:ring-4 focus-visible:ring-offset-2 focus-visible:ring-[#d4a574]/50"
                 }`}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
