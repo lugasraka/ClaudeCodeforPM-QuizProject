@@ -53,6 +53,7 @@ export default function Home() {
     if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
       answerButtonsRef.current[selectedAnswer]?.focus();
     }
+      try {
   }, [selectedAnswer, started, showResults]);
         } catch (shareError) {
           await navigator.share({
