@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import IntroScreen from "../components/IntroScreen";
-import Results from "../components/Results";
 import Button from "../components/Button";
 import ErrorMessage from "../components/ErrorMessage";
 import { questions } from "../utils/quizData";
@@ -11,6 +11,10 @@ import { shuffleArray, calculateResults, personalityData } from "../utils/helper
 import { playSound, setSoundEnabled, isSoundEnabled } from "../utils/sounds";
 import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_URL } from "../utils/constants";
 import type { Personality, Question } from "../utils/quizData";
+
+const Results = dynamic(() => import("../components/Results"), {
+  loading: () => <div className="min-h-screen flex items-center justify-center">Loading results...</div>,
+});
 
 export default function Home() {
   const [started, setStarted] = useState(false);
@@ -28,6 +32,24 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const answerButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
+
+  useEffect(() => {
+    if (!started && startButtonRef.current) {
+      startButtonRef.current.focus();
+    }
+  }, [started]);
+
+  useEffect(() => {
+    answerButtonsRef.current = answerButtonsRef.current.slice(0, questions[currentQuestion]?.answers.length);
+  }, [currentQuestion]);
+
+  useEffect(() => {
+    if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
+      answerButtonsRef.current[selectedAnswer]?.focus();
+    }
+  }, [selectedAnswer, started, showResults]);
 
   useEffect(() => {
     try {
@@ -325,7 +347,7 @@ export default function Home() {
           <p className={`text-lg mb-8 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
             Discover your coffee soulmate! Answer 7 fun questions and find out which brew matches your personality.
           </p>
-          <Button onClick={handleStart} variant="primary">
+          <Button onClick={handleStart} variant="primary" ref={startButtonRef}>
             Start Quiz ☕
           </Button>
         </div>
@@ -419,15 +441,18 @@ export default function Home() {
             {question.question}
           </h2>
 
-          <div className="space-y-3">
+           <div className="space-y-3" role="radiogroup">
             {question.answers.map((answer, idx) => (
               <Button
                 key={idx}
+                ref={el => answerButtonsRef.current[idx] = el}
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
-                className={`text-left p-4 ${
-                  selectedAnswer === idx ? "ring-4 ring-[#d4a574]/50 scale-[1.02]" : ""
+                role="radio"
+                aria-checked={selectedAnswer === idx}
+                className={`text-left p-4 justify-start ${
+                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : "focus:ring-4 focus:ring-offset-2 focus:ring-[#d4a574]/50"
                 }`}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
