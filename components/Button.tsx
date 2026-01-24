@@ -17,27 +17,34 @@ const variantStyles: Record<ButtonVariant, string> = {
   answer: "bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] text-[#5a3d2b] hover:from-[#d4a574] hover:to-[#c49566] hover:text-white hover:scale-[1.02] border-2 border-[#d4a574] focus:ring-4 focus:ring-offset-2 focus:ring-[#d4a574]/50"
 };
 
-export default function Button({
-  variant = "primary",
-  children,
-  isLoading = false,
-  fullWidth = false,
-  className = "",
-  disabled,
-  innerRef,
-  ...props
-}: ButtonProps) {
-  const baseStyles = "px-8 py-4 rounded-xl text-lg font-semibold transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
-  const widthStyles = fullWidth ? "w-full" : "";
-  
-  return (
-    <button
-      ref={innerRef}
-      className={`${baseStyles} ${variantStyles[variant]} ${widthStyles} ${className}`}
-      disabled={disabled || isLoading}
-      {...props}
-    >
-      {isLoading ? "⏳ Loading..." : children}
-    </button>
-  );
-}
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  (
+    {
+      variant = "primary",
+      children,
+      isLoading = false,
+      fullWidth = false,
+      className = "",
+      disabled,
+      ...props
+    },
+    ref
+  ) => {
+    const baseStyles =
+      "px-8 py-4 rounded-xl text-lg font-semibold transition-transform disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100";
+    const widthStyles = fullWidth ? "w-full" : "";
+
+    return (
+      <button
+        ref={ref}
+        className={`${baseStyles} ${variantStyles[variant]} ${widthStyles} ${className}`}
+        disabled={disabled || isLoading}
+        {...props}
+      >
+        {isLoading ? "⏳ Loading..." : children}
+      </button>
+    );
+  }
+);
+
+export default Button;

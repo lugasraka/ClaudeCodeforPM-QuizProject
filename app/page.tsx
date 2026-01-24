@@ -11,7 +11,11 @@ import { playSound, setSoundEnabled, isSoundEnabled } from "../utils/sounds";
 import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_URL } from "../utils/constants";
 import type { Personality, Question } from "../utils/quizData";
 
-import Results from "../components/Results";
+import dynamic from "next/dynamic";
+
+const Results = dynamic(() => import("../components/Results"), {
+  loading: () => <div className="min-h-screen flex items-center justify-center">Loading...</div>,
+});
 
 export default function Home() {
   const [started, setStarted] = useState(false);
@@ -29,23 +33,20 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [soundEnabled, setSoundEnabledState] = useState(true);
 
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const answerButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
   useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem("quiz-dark-mode");
-      if (savedTheme) {
-        setIsDark(savedTheme === "true");
-      }
-      
-      const savedSound = localStorage.getItem("quiz-sound-enabled");
-      if (savedSound !== null) {
-        const enabled = savedSound === "true";
-        setSoundEnabledState(enabled);
-        setSoundEnabled(enabled);
-      }
-    } catch (e) {
-      console.error("Failed to load preferences from localStorage:", e);
+    if (!started && startButtonRef.current) {
+      startButtonRef.current.focus();
     }
-  }, []);
+  }, [started]);
+
+  useEffect(() => {
+    if (selectedAnswer !== null && answerButtonRefs.current[selectedAnswer]) {
+      answerButtonRefs.current[selectedAnswer]?.focus();
+    }
+  }, [selectedAnswer]);
 
   useEffect(() => {
     try {
@@ -218,7 +219,7 @@ export default function Home() {
           <p className={`text-lg mb-8 ${isDark ? "text-gray-300" : "text-[#8b6239]"}`}>
             Discover your coffee soulmate! Answer 7 fun questions and find out which brew matches your personality.
           </p>
-          <Button onClick={handleStart} variant="primary">
+           <Button onClick={handleStart} variant="primary" ref={startButtonRef}>
             Start Quiz ☕
           </Button>
         </div>
@@ -318,6 +319,8 @@ export default function Home() {
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
+                ref={(el) => (answerButtonRefs.current[idx] = el)}
+                className={selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/50" : ""}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
                 {answer.text}
