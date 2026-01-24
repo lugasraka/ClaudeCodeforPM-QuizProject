@@ -56,6 +56,35 @@ export default function Home() {
   }, [selectedAnswer, started, showResults]);
 
   useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (showResults || !started || isTransitioning || showIntro) return;
+
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const question = shuffledQuestions[currentQuestion];
+        const answers = question.answers;
+        const currentIdx = selectedAnswer ?? -1;
+        const nextIdx = currentIdx < answers.length - 1 ? currentIdx + 1 : 0;
+        setSelectedAnswer(nextIdx);
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const question = shuffledQuestions[currentQuestion];
+        const answers = question.answers;
+        const currentIdx = selectedAnswer ?? answers.length;
+        const prevIdx = currentIdx > 0 ? currentIdx - 1 : answers.length - 1;
+        setSelectedAnswer(prevIdx);
+      } else if (e.key === "Enter" && selectedAnswer !== null) {
+        e.preventDefault();
+        const question = shuffledQuestions[currentQuestion];
+        handleAnswer(question.answers[selectedAnswer].personality, selectedAnswer);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentQuestion, selectedAnswer, showResults, started, isTransitioning, handleAnswer, showIntro, shuffledQuestions]);
+
+  useEffect(() => {
     if (!started && startButtonRef.current) {
       startButtonRef.current.focus();
     }
