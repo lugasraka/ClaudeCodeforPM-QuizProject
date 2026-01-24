@@ -35,6 +35,10 @@ export default function Home() {
   const startButtonRef = useRef<HTMLButtonElement>(null);
   const answerButtonsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
+  const Results = dynamic(() => import("../components/Results"), {
+    loading: () => <div className="min-h-screen flex items-center justify-center text-white p-4">Loading your results...</div>,
+  });
+
   useEffect(() => {
     if (!started && startButtonRef.current) {
       startButtonRef.current.focus();
@@ -50,149 +54,6 @@ export default function Home() {
       answerButtonsRef.current[selectedAnswer]?.focus();
     }
   }, [selectedAnswer, started, showResults]);
-
-  useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem("quiz-dark-mode");
-      if (savedTheme) {
-        setIsDark(savedTheme === "true");
-      }
-      
-      const savedSound = localStorage.getItem("quiz-sound-enabled");
-      if (savedSound !== null) {
-        const enabled = savedSound === "true";
-        setSoundEnabledState(enabled);
-        setSoundEnabled(enabled);
-      }
-    } catch (e) {
-      console.error("Failed to load preferences from localStorage:", e);
-      // Continue without saved preferences
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem("quiz-dark-mode", String(isDark));
-      if (isDark) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    } catch (e) {
-      console.error("Failed to save theme to localStorage:", e);
-      // Continue without saving theme
-    }
-  }, [isDark]);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const result = params.get("result");
-    if (result) {
-      try {
-        const decoded = JSON.parse(atob(result));
-        setSelections(decoded.selections || []);
-        setShowResults(true);
-        setStarted(true);
-      } catch (e) {
-        console.error("Failed to parse result from URL");
-      }
-    }
-  }, []);
-
-  const handleStart = () => {
-    const shuffled = shuffleArray(questions.map(q => ({
-      ...q,
-      answers: shuffleArray(q.answers)
-    })));
-    setShuffledQuestions(shuffled);
-    setShowIntro(true);
-  };
-
-  const handleIntroComplete = () => {
-    setShowIntro(false);
-    setStarted(true);
-  };
-
-  const handleAnswer = useCallback((personality: Personality, answerIndex?: number) => {
-    playSound("select");
-    setSelectedAnswer(answerIndex ?? null);
-    setIsTransitioning(true);
-
-    setTimeout(() => {
-      const newSelections = [...selections, personality];
-      setSelections(newSelections);
-
-      if (currentQuestion < shuffledQuestions.length - 1) {
-        setCurrentQuestion(currentQuestion + 1);
-      } else {
-        playSound("complete");
-        setShowResults(true);
-      }
-      setIsTransitioning(false);
-      setSelectedAnswer(null);
-    }, TRANSITION_DURATION);
-  }, [currentQuestion, selections, shuffledQuestions.length]);
-
-  const handleBack = () => {
-    if (currentQuestion > 0) {
-      const newSelections = [...selections];
-      newSelections.pop();
-      setSelections(newSelections);
-      setCurrentQuestion(currentQuestion - 1);
-    }
-  };
-
-  const handleRestart = () => {
-    const shuffled = shuffleArray(questions.map(q => ({
-      ...q,
-      answers: shuffleArray(q.answers)
-    })));
-    setShuffledQuestions(shuffled);
-    setStarted(false);
-    setCurrentQuestion(0);
-    setSelections([]);
-    setShowResults(false);
-  };
-
-  const shareResults = async () => {
-    if (!resultsRef.current) {
-      fallbackShare();
-      return;
-    }
-
-    setIsCapturing(true);
-
-    try {
-      const html2canvasModule = await import("html2canvas");
-
-      const canvas = await html2canvasModule.default(resultsRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-      } as any);
-
-      const dataUrl = canvas.toDataURL("image/png");
-
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
-
-      if (!blob) {
-        setIsCapturing(false);
-        fallbackShare();
-        return;
-      }
-
-      const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
-
-      const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
-
-      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-        try {
-          await navigator.share({
-            title: "My Coffee Personality",
-            text: shareText,
-            files: [file],
-          });
         } catch (shareError) {
           await navigator.share({
             title: "My Coffee Personality",
