@@ -11,7 +11,7 @@ import { playSound, setSoundEnabled, isSoundEnabled } from "../utils/sounds";
 import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_URL } from "../utils/constants";
 import type { Personality, Question } from "../utils/quizData";
 
-const Results = dynamic(() => import("../components/Results"));
+import Results from "../components/Results";
 
 export default function Home() {
   const [started, setStarted] = useState(false);
