@@ -56,35 +56,6 @@ export default function Home() {
   }, [selectedAnswer, started, showResults]);
 
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (showResults || !started || isTransitioning || showIntro) return;
-
-      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
-        e.preventDefault();
-        const question = shuffledQuestions[currentQuestion];
-        const answers = question.answers;
-        const currentIdx = selectedAnswer ?? -1;
-        const nextIdx = currentIdx < answers.length - 1 ? currentIdx + 1 : 0;
-        setSelectedAnswer(nextIdx);
-      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
-        e.preventDefault();
-        const question = shuffledQuestions[currentQuestion];
-        const answers = question.answers;
-        const currentIdx = selectedAnswer ?? answers.length;
-        const prevIdx = currentIdx > 0 ? currentIdx - 1 : answers.length - 1;
-        setSelectedAnswer(prevIdx);
-      } else if (e.key === "Enter" && selectedAnswer !== null) {
-        e.preventDefault();
-        const question = shuffledQuestions[currentQuestion];
-        handleAnswer(question.answers[selectedAnswer].personality, selectedAnswer);
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentQuestion, selectedAnswer, showResults, started, isTransitioning, handleAnswer, showIntro, shuffledQuestions]);
-
-  useEffect(() => {
     if (!started && startButtonRef.current) {
       startButtonRef.current.focus();
     }
@@ -97,10 +68,46 @@ export default function Home() {
   useEffect(() => {
     if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
       answerButtonsRef.current[selectedAnswer]?.focus();
+    }
+      try {
   }, [selectedAnswer, started, showResults]);
+        } catch (shareError) {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            url: APP_URL,
+          });
+        }
+      } else if (navigator.share) {
+        try {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            url: APP_URL,
+          });
+        } catch (shareError) {
+          console.log("Share failed:", shareError);
+        }
+      }
+
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "my-coffee-personality.png";
+      link.click();
+
+      setIsCapturing(false);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_FEEDBACK_DURATION);
+    } catch (error) {
+      console.error("Error capturing screenshot:", error);
+      setIsCapturing(false);
+      setError("Failed to capture screenshot. You can still share using the link below!");
+      setTimeout(() => setError(null), 5000);
+      fallbackShare();
+    }
   };
 
-  const getTopResultName = () => {
+  const fallbackShare = () => {
     const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
 
     if (navigator.share) {
