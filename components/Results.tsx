@@ -1,7 +1,8 @@
 "use client";
 
 import { useRef } from "react";
-import Image from "next/image";
+import AnimatedAvatar from "./AnimatedAvatar";
+import ResultCoffeeCup from "./ResultCoffeeCup";
 import dynamic from "next/dynamic";
 import Button from "./Button";
 import ErrorMessage from "./ErrorMessage";
@@ -41,21 +42,11 @@ export default function Results({ results, isDark, onRestart, onShare, onCopyLin
           Here&apos;s your complete breakdown!
         </p>
 
-        <div className="bg-gradient-to-r from-[#d4a574] to-[#c49566] rounded-2xl p-6 mb-6 text-white text-center">
-          <p className="text-sm uppercase tracking-wide mb-1">You&apos;re mostly a...</p>
-          <h2 className="text-2xl font-bold mb-1">
-            {personalityData[topResult.personality].name}
-          </h2>
-          <p className="text-lg opacity-90">
-            &quot;{personalityData[topResult.personality].tagline}&quot;
-          </p>
-          <p className="mt-3 text-xl font-semibold">
-            ☕ {personalityData[topResult.personality].coffee}
-          </p>
-          <p className="mt-3 text-sm opacity-90">
-            {personalityData[topResult.personality].description}
-          </p>
+
+        <div className="mb-6">
+          <ResultCoffeeCup results={results} />
         </div>
+
 
         <div className="space-y-4">
           {results.map((result) => {
@@ -65,16 +56,7 @@ export default function Results({ results, isDark, onRestart, onShare, onCopyLin
                 key={result.personality}
                 className={`rounded-xl p-4 flex items-center gap-4 border-2 ${isDark ? "bg-gray-700 border-gray-600" : "bg-gradient-to-r from-[#f4e4d4] to-[#ead5c3] border-[#d4a574]"}`}
               >
-                <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 relative">
-                  <Image
-                    src={data.image}
-                    alt={data.name}
-                    fill
-                    className="object-cover"
-                    placeholder="blur"
-                    blurDataURL={IMAGE_PLACEHOLDER}
-                  />
-                </div>
+                <AnimatedAvatar personality={result.personality} />
                 <div className="flex-grow">
                   <div className="flex justify-between items-center mb-1">
                     <h3 className={`font-semibold ${isDark ? "text-white" : "text-[#5a3d2b]"}`}>{data.name}</h3>
