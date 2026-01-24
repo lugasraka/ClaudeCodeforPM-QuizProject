@@ -13,7 +13,7 @@ import { IMAGE_PLACEHOLDER, TRANSITION_DURATION, COPIED_FEEDBACK_DURATION, APP_U
 import type { Personality, Question } from "../utils/quizData";
 
 const Results = dynamic(() => import("../components/Results"), {
-  loading: () => <div className="min-h-screen flex items-center justify-center">Loading results...</div>,
+  loading: () => <div className={`min-h-screen ${isDark ? "bg-gray-900" : "bg-[#d4a574]"} flex items-center justify-center text-white p-4`}>Loading your results...</div>,
 });
 
 export default function Home() {
@@ -445,14 +445,14 @@ export default function Home() {
             {question.answers.map((answer, idx) => (
               <Button
                 key={idx}
-                ref={el => answerButtonsRef.current[idx] = el}
+                innerRef={el => answerButtonsRef.current[idx] = el}
                 onClick={() => handleAnswer(answer.personality, idx)}
                 variant="answer"
                 fullWidth
                 role="radio"
                 aria-checked={selectedAnswer === idx}
                 className={`text-left p-4 justify-start ${
-                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : "focus:ring-4 focus:ring-offset-2 focus:ring-[#d4a574]/50"
+                  selectedAnswer === idx ? "ring-4 ring-offset-2 ring-[#d4a574]/80 scale-[1.02]" : ""
                 }`}
               >
                 <span className="mr-3 text-xl">{answer.icon}</span>
