@@ -98,6 +98,47 @@ export default function Home() {
     if (started && !showResults && selectedAnswer !== null && answerButtonsRef.current[selectedAnswer]) {
       answerButtonsRef.current[selectedAnswer]?.focus();
   }, [selectedAnswer, started, showResults]);
+  };
+
+  const shareResults = async () => {
+    if (!resultsRef.current) {
+      fallbackShare();
+      return;
+    }
+
+    setIsCapturing(true);
+
+    try {
+      const html2canvasModule = await import("html2canvas");
+
+      const canvas = await html2canvasModule.default(resultsRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      } as any);
+
+      const dataUrl = canvas.toDataURL("image/png");
+
+      const response = await fetch(dataUrl);
+      const blob = await response.blob();
+
+      if (!blob) {
+        setIsCapturing(false);
+        fallbackShare();
+        return;
+      }
+
+      const file = new File([blob], "my-coffee-personality.png", { type: "image/png" });
+
+      const shareText = `☕ I took the Coffee Personality Quiz and got "${getTopResultName()}" - ${getTopResultTagline()}\n\n${getTopResultCoffee()}\n\nTake the quiz: ${APP_URL}`;
+
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            title: "My Coffee Personality",
+            text: shareText,
+            files: [file],
+          });
         } catch (shareError) {
           await navigator.share({
             title: "My Coffee Personality",
