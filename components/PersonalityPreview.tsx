@@ -4,10 +4,10 @@ import type { Personality } from "../utils/quizData";
 
 export default function PersonalityPreview({ selections, isDark }: { selections: Personality[], isDark: boolean }) {
   const counts: Record<Personality, number> = {
-    cozyClassic: 0,
-    sweetEnthusiast: 0,
-    healthNut: 0,
-    indulgentTreat: 0,
+    "Cozy Classic": 0,
+    "Sweet Enthusiast": 0,
+    "Health Nut": 0,
+    "Indulgent Treat": 0,
   };
 
   selections.forEach((p) => {
@@ -16,7 +16,7 @@ export default function PersonalityPreview({ selections, isDark }: { selections:
 
   const total = selections.length || 1;
 
-  const personalityOrder: Personality[] = ["cozyClassic", "sweetEnthusiast", "healthNut", "indulgentTreat"];
+  const personalityOrder: Personality[] = ["Cozy Classic", "Sweet Enthusiast", "Health Nut", "Indulgent Treat"];
 
   return (
     <div className={`mb-6 p-4 rounded-xl border ${isDark ? "bg-gray-800 border-gray-700" : "bg-[#fdf6ec] border-[#d4a574]/30"}`}>
